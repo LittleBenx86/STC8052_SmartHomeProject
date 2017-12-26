@@ -1,0 +1,215 @@
+C51 COMPILER V9.56.0.0   AT24C02                                                           12/21/2017 10:15:39 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE AT24C02
+OBJECT MODULE PLACED IN .\Objects\AT24C02.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE AT24C02.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\A
+                    -T24C02.lst) TABS(2) OBJECT(.\Objects\AT24C02.obj)
+
+line level    source
+
+   1          #include "AT24C02.h"
+   2          
+   3          /*******************************************************************************
+   4          * @function         : 启动AT24C02
+   5          * @brief            : 启动IIC总线,通知处于该总线的器件准备接受主机的命令
+   6          * @param            : none
+   7          * @retval           : none
+   8          *******************************************************************************/
+   9          void start(){
+  10   1        SDA = 1;
+  11   1        delay5Us();
+  12   1        SCLK = 1;
+  13   1        delay5Us();
+  14   1        SDA = 0;
+  15   1        delay5Us();
+  16   1      }
+  17          
+  18          /*******************************************************************************
+  19          * @function         : 停止AT24C02
+  20          * @brief            : 停止IIC总线
+  21          * @param            : none
+  22          * @retval           : none
+  23          *******************************************************************************/
+  24          void stop(){
+  25   1        SDA = 0;
+  26   1        delay5Us();
+  27   1        SCLK = 1;
+  28   1        delay5Us();
+  29   1        SDA = 1;
+  30   1        delay5Us(); 
+  31   1      }
+  32          
+  33          /*******************************************************************************
+  34          * @function         : 从机ack应答
+  35          * @brief            : none
+  36          * @param            : none
+  37          * @retval           : none
+  38          *******************************************************************************/
+  39          void ackResponse(){
+  40   1        uchar i;
+  41   1        SCLK = 1;
+  42   1        delay5Us();
+  43   1        while((1 == SDA) && (i++ < 250));
+  44   1        SCLK = 0;
+  45   1        delay5Us(); 
+  46   1      }
+  47          
+  48          /*******************************************************************************
+  49          * @function         : 主机nack应答
+  50          * @brief            : none
+  51          * @param            : none
+  52          * @retval           : none
+  53          *******************************************************************************/
+  54          void nackResponse(){
+C51 COMPILER V9.56.0.0   AT24C02                                                           12/21/2017 10:15:39 PAGE 2   
+
+  55   1        SCLK = 1;
+  56   1        delay5Us();
+  57   1        SDA = 1;
+  58   1        SCLK = 0;
+  59   1        delay5Us(); 
+  60   1      }
+  61          
+  62          /*******************************************************************************
+  63          * @function         : 初始化AT24C02
+  64          * @brief            : none
+  65          * @param            : none
+  66          * @retval           : none
+  67          *******************************************************************************/
+  68          void initAT24C02(){
+  69   1        SDA = 1;
+  70   1        delay5Us();
+  71   1        SCLK = 1;
+  72   1        delay5Us();
+  73   1      }
+  74          
+  75          /*******************************************************************************
+  76          * @function         : 字节写入
+  77          * @brief            : 写入一个字节的数据/命令到AT24C02
+  78          * @param            : dat 数据/命令
+  79          * @retval           : none
+  80          *******************************************************************************/
+  81          void writeByte(uchar dat){
+  82   1        uchar i, temp;
+  83   1        temp = dat;
+  84   1        for(i = 0; i < 8; i++){
+  85   2          temp <<= 1;//将高位数据依次送入CY
+  86   2          SCLK = 0;//SCLK=0,允许数据改变
+  87   2          delay5Us();
+  88   2          SDA = CY;//送CY中的数据到SDA
+  89   2          delay5Us();
+  90   2          SCLK = 1;//SCLK=1,保持数据,开始传输
+  91   2          delay5Us();
+  92   2        }
+  93   1        //传输完1Byte数据,主机需要等待从机的ack应答
+  94   1        SCLK = 0;//允许数据变化
+  95   1        delay5Us();
+  96   1        SDA = 1;//等待ack,SDA=1拉高等待应答,若SDA=0,表示应答完成
+  97   1        delay5Us();
+  98   1      }
+  99          
+ 100          /*******************************************************************************
+ 101          * @function         : 字节读出
+ 102          * @brief            : 从AT24C02中读出一个字节的数据
+ 103          * @param            : none
+ 104          * @retval           : dat 读出的数据
+ 105          *******************************************************************************/
+ 106          uchar readByte(){
+ 107   1        uchar i, j, k;
+ 108   1        SCLK = 0;//允许数据变化
+ 109   1        delay5Us();
+ 110   1        for(i = 0; i < 8; i++){
+ 111   2          SCLK = 1;//不允许数据变化
+ 112   2          delay5Us();//稳定后读取
+ 113   2          j = SDA;//读取SDA上的数据
+ 114   2          k = (k << 1) | j;//存入k中,最终形成1Byte
+ 115   2          SCLK = 0;//允许数据变化,等待下一位数据
+ 116   2          delay5Us();
+C51 COMPILER V9.56.0.0   AT24C02                                                           12/21/2017 10:15:39 PAGE 3   
+
+ 117   2        }
+ 118   1        return k;
+ 119   1      }
+ 120          
+ 121          /*******************************************************************************
+ 122          * @function         : 字节写入
+ 123          * @brief            : 选择一个地址写入一字节的数据到AT24C02
+ 124          * @param            : addr 目标地址 dat 数据
+ 125          * @retval           : none
+ 126          *******************************************************************************/
+ 127          void writeByte2Addr(uchar addr, uchar dat){
+ 128   1        start();
+ 129   1        writeByte(WRITE_AT24C02_CMD);//at24c02 写入命令
+ 130   1        ackResponse();
+ 131   1        writeByte(addr);//选择地址
+ 132   1        ackResponse();
+ 133   1        writeByte(dat);//写入数据
+ 134   1        ackResponse();
+ 135   1        stop();
+ 136   1      }
+ 137          
+ 138          /*******************************************************************************
+ 139          * @function         : 字节读出
+ 140          * @brief            : 从AT24C02的目标地址中读出一字节的数据
+ 141          * @param            : addr 目标地址
+ 142          * @retval           : dat 读出的数据
+ 143          *******************************************************************************/
+ 144          uchar readByteFromAddr(uchar addr){
+ 145   1        uchar dat;
+ 146   1        start();
+ 147   1        writeByte(WRITE_AT24C02_CMD);//at24c02 写入命令
+ 148   1        ackResponse();
+ 149   1        writeByte(addr);//选择地址
+ 150   1        ackResponse();
+ 151   1        start();
+ 152   1        writeByte(READ_AT24C02_CMD);//at24c02 读出命令
+ 153   1        ackResponse();
+ 154   1        dat = readByte();//读出数据
+ 155   1        nackResponse();
+ 156   1        stop();
+ 157   1        return dat;
+ 158   1      }
+ 159          
+ 160          /*******************************************************************************
+ 161          * @function         : 写入一个数组的数据
+ 162          * @brief            : 写入一个数组的数据到AT24C02
+ 163          * @param            : arr 目标数组的地址 addr AT24C02的地址 num 数组的长度
+ 164          * @retval           : none
+ 165          *******************************************************************************/
+ 166          void writeArray(uchar *arr, uchar addr, uchar num){
+ 167   1        uchar i;
+ 168   1        for(i = 0; i < num; i++){
+ 169   2          writeByte2Addr(addr + i, *(arr + i));
+ 170   2          delayMs(15);
+ 171   2        }
+ 172   1      }
+ 173          
+ 174          /*******************************************************************************
+ 175          * @function         : 读出一个数组的数据
+ 176          * @brief            : 从AT24C02中读出一个数组的数据
+ 177          * @param            : arr 存放数据数组的地址 addr AT24C02的地址 num 数组的长度
+ 178          * @retval           : arr 读取的数据
+C51 COMPILER V9.56.0.0   AT24C02                                                           12/21/2017 10:15:39 PAGE 4   
+
+ 179          *******************************************************************************/
+ 180          void readArray(uchar *arr, uchar addr, uchar num){
+ 181   1        uchar i;
+ 182   1        for(i = 0; i < num; i++){
+ 183   2          *(arr + i) = readByteFromAddr(addr + i);
+ 184   2        }
+ 185   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    345    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      22
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

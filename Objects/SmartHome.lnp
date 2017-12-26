@@ -1,0 +1,9 @@
+".\Objects\LCD12864.obj",
+".\Objects\KeyScan.obj",
+".\Objects\Delay.obj",
+".\Objects\I2C.obj",
+".\Objects\main.obj",
+".\Objects\DS3231.obj",
+".\Objects\GSM.obj" 
+TO ".\Objects\SmartHome" 
+PRINT(".\Listings\SmartHome.m51") RAMSIZE(256) 

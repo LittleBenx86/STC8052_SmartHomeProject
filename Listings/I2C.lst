@@ -1,0 +1,243 @@
+C51 COMPILER V9.56.0.0   I2C                                                               12/26/2017 12:46:04 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN .\Objects\I2C.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE I2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\I2C.l
+                    -st) TABS(2) OBJECT(.\Objects\I2C.obj)
+
+line level    source
+
+   1          #include "I2C.h"
+   2          
+   3          /****************************
+   4           * @param none
+   5           * @author Unicorn
+   6           * @date 2017-12-21
+   7           */
+   8          
+   9          /*******************************************************************************
+  10          * @function         : start 
+  11          * @brief            : starting the I2C bus and notifying all I2C device
+  12          * @param            : none
+  13          * @retval           : none
+  14          *******************************************************************************/
+  15          void start(){
+  16   1        SDA = 1;
+  17   1        delay5Us();
+  18   1        SCLK = 1;
+  19   1        delay5Us();
+  20   1        SDA = 0;
+  21   1        delay5Us();
+  22   1      }
+  23          
+  24          /*******************************************************************************
+  25          * @function         : stop 
+  26          * @brief            : stop I2C bus
+  27          * @param            : none
+  28          * @retval           : none
+  29          *******************************************************************************/
+  30          void stop(){
+  31   1        SDA = 0;
+  32   1        delay5Us();
+  33   1        SCLK = 1;
+  34   1        delay5Us();
+  35   1        SDA = 1;
+  36   1        delay5Us(); 
+  37   1      }
+  38          
+  39          /*******************************************************************************
+  40          * @function         : ackResponse
+  41          * @brief            : I2C slaver ack response 
+  42          * @param            : none
+  43          * @retval           : none
+  44          *******************************************************************************/
+  45          void ackResponse(){
+  46   1        uchar i;
+  47   1        SCLK = 1; delay5Us();
+  48   1        while((SDA == 1) && (i++ < 250)); 
+  49   1        SCLK = 0; delay5Us(); 
+  50   1      }
+  51          
+  52          /*******************************************************************************
+  53          * @function         : nackResponse
+  54          * @brief            : nack response (master)
+C51 COMPILER V9.56.0.0   I2C                                                               12/26/2017 12:46:04 PAGE 2   
+
+  55          * @param            : none
+  56          * @retval           : none
+  57          *******************************************************************************/
+  58          void nackResponse(){
+  59   1        SCLK = 1;
+  60   1        delay5Us();
+  61   1        SDA = 1;
+  62   1        SCLK = 0;
+  63   1        delay5Us();
+  64   1      }
+  65          
+  66          
+  67          /*******************************************************************************
+  68          * @function         : initI2C
+  69          * @brief            : initial the I2C bus
+  70          * @param            : none
+  71          * @retval           : none
+  72          *******************************************************************************/
+  73          void initI2C(){
+  74   1        SDA = 1;
+  75   1        delay5Us();
+  76   1        SCLK = 1;
+  77   1        delay5Us();
+  78   1      }
+  79          
+  80          /*******************************************************************************
+  81          * @function         : writeByte
+  82          * @brief            : write a byte to I2C SDA line
+  83          * @param            : dat : data/command
+  84          * @retval           : none
+  85          *******************************************************************************/
+  86          void writeByte(uchar dat){
+  87   1        uchar i, temp;
+  88   1        temp = dat;
+  89   1        for(i = 0; i < 8; i++){
+  90   2          temp <<= 1;//repeatly sent 8bit data to CY
+  91   2          SCLK = 0;//SCLK=0, allow to change the SDA line status
+  92   2          delay5Us();
+  93   2          SDA = CY;//sent the data on CY to SDA line
+  94   2          delay5Us();
+  95   2          SCLK = 1;//SCLK=1, hold the SDA line status to sent data
+  96   2          delay5Us();
+  97   2        }
+  98   1        //master waits ack response from slaver after 1byte has been send
+  99   1        SCLK = 0;//allow to change the SDA line status
+ 100   1        delay5Us();
+ 101   1        SDA = 1;//master waits ack response from slaver, SDA = 1 means that it accpet ack response. after while, 
+             -if SDA = 1 means that it has received ack resposne
+ 102   1        delay5Us();
+ 103   1      }
+ 104          
+ 105          /*******************************************************************************
+ 106          * @function         : readByte
+ 107          * @brief            : read a byte from I2C SDA line
+ 108          * @param            : none
+ 109          * @retval           : dat : return data
+ 110          *******************************************************************************/
+ 111          uchar readByte(){
+ 112   1        uchar i, j, k;
+ 113   1        SCLK = 0;//allow to change the SDA line status
+ 114   1        delay5Us();
+ 115   1        for(i = 0; i < 8; i++){
+C51 COMPILER V9.56.0.0   I2C                                                               12/26/2017 12:46:04 PAGE 3   
+
+ 116   2          SCLK = 1;// could not change the SDA line status
+ 117   2          delay5Us();//delay for stable
+ 118   2          j = SDA;//read the SDA line status
+ 119   2          k = (k << 1) | j;//get 1bit data
+ 120   2          SCLK = 0;//allow to change the SDA line status and waiting for next 1bit
+ 121   2          delay5Us();
+ 122   2        }
+ 123   1        return k;
+ 124   1      }
+ 125          
+ 126          /*******************************************************************************
+ 127          * @function         : writeByte2Addr
+ 128          * @brief            : write a byte to specified address of I2C device's register.
+ 129          * @param            : addr : specified address ,dat : data, wcmd : write command
+ 130          *                     flag=0 addr range: 0x00~0xff flag=1 addr range : 0x0000~0xffff 
+ 131          * @retval           : none
+ 132          *******************************************************************************/
+ 133          void writeByte2Addr(uchar addr, uint addrL, uchar dat, uchar wcmd, bit flag){
+ 134   1        start();
+ 135   1        writeByte(wcmd);//write command
+ 136   1        if(0 == flag){//addr range : 0x00~0xff
+ 137   2          ackResponse();
+ 138   2          writeByte(addr);//specified address
+ 139   2          } else if(1 == flag){//addr range : 0x0000~0xffff
+ 140   2          ackResponse();
+ 141   2          writeByte(addrL / 256);//specified address's high 8bit
+ 142   2          ackResponse();
+ 143   2          writeByte(addrL % 256);//specified address's low 8bit
+ 144   2        }
+ 145   1        ackResponse();
+ 146   1        writeByte(dat);//write data
+ 147   1        stop();
+ 148   1      }
+ 149          
+ 150          /*******************************************************************************
+ 151          * @function         : readByteFromAddr
+ 152          * @brief            : read a byte from specified address of I2C device's register
+ 153          * @param            : addr :the specified address,dat :the data papared to write,wcmd :write commamd, rcmd
+             - :read command
+ 154          *                     flag=0 addr range : 0x00~0xff ,flag=1 addr range : 0x0000~0xffff 
+ 155          * @retval           : dat : return data
+ 156          *******************************************************************************/
+ 157          uchar readByteFromAddr(uchar addr, uint addrL, uchar wcmd, uchar rcmd, bit flag){
+ 158   1        uchar dat;
+ 159   1        start();
+ 160   1        writeByte(wcmd);//write command
+ 161   1        if(0 == flag){//addr range : 0x00~0xff
+ 162   2          ackResponse();
+ 163   2          writeByte(addr);//specified address
+ 164   2          ackResponse();
+ 165   2          } else if(1 == flag){//addr range : 0x0000~0xffff
+ 166   2          ackResponse();
+ 167   2          writeByte(addrL / 256);//specified address's high 8bit
+ 168   2          ackResponse();
+ 169   2          writeByte(addrL % 256);//specified address's low 8bit
+ 170   2          ackResponse();
+ 171   2        }
+ 172   1        start();
+ 173   1        writeByte(rcmd);//read command
+ 174   1        ackResponse();
+ 175   1        dat = readByte();//read data
+ 176   1        ackResponse();
+C51 COMPILER V9.56.0.0   I2C                                                               12/26/2017 12:46:04 PAGE 4   
+
+ 177   1        nackResponse();
+ 178   1        stop();
+ 179   1        return dat;
+ 180   1      }
+ 181          
+ 182          /*******************************************************************************
+ 183          * @function         : writeArray
+ 184          * @brief            : write an array to specified address of I2C device's register
+ 185          * @param            : addr :the specified address, arr :the array papared to write,wcmd :write commamd, rc
+             -md :read command, num :array length, wcmd :write commamd
+ 186          *                     flag=0 addr range: 0x00~0xff flag=1 addr range : 0x0000~0xffff 
+ 187          * @retval           : none
+ 188          *******************************************************************************/
+ 189          void writeArray(uchar *arr, uchar addr, uint addrL, uchar num, uchar wcmd, bit flag){
+ 190   1        uchar i;
+ 191   1        for(i = 0; i < num; i++){
+ 192   2          writeByte2Addr(addr + i, addrL + i, *(arr + i), wcmd, flag);
+ 193   2          delayMs(15);
+ 194   2        }
+ 195   1      }
+ 196          
+ 197          /*******************************************************************************
+ 198          * @function         : readArray
+ 199          * @brief            : read an array from specified address of I2C device's register
+ 200          * @param            : arr :the return value(Throught the pointer return) addr :device address, num array's
+             - length, wcmd :write command, rcmd :read command
+ 201          *                     flag=0 addrΪ0x00~0xff flag=1 addrΪ0x0000~0xffff 
+ 202          * @retval           : arr : return data
+ 203          *******************************************************************************/
+ 204          void readArray(uchar *arr, uchar addr, uint addrL, uchar num, uchar wcmd, uchar rcmd, bit flag){
+ 205   1        uchar i;
+ 206   1        for(i = 0; i < num; i++){
+ 207   2          *(arr + i) = readByteFromAddr(addr + i, addrL + i, wcmd, rcmd, flag);
+ 208   2        }
+ 209   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    437    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      36
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       4
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,96 @@
+C51 COMPILER V9.56.0.0   GSM                                                               12/26/2017 12:46:05 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE GSM
+OBJECT MODULE PLACED IN .\Objects\GSM.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE GSM.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\GSM.l
+                    -st) TABS(2) OBJECT(.\Objects\GSM.obj)
+
+line level    source
+
+   1          #include "GSM.h"
+   2          
+   3          
+   4          /*******************************************
+   5           * @author Unicorn
+   6           * @date 2017-12-24
+   7           */
+   8          
+   9          //send enter character
+  10          #define SendLR() sendAChar(0x0D);sendAChar(0x0A);
+  11          
+  12          //the messge
+  13          code uchar content[] = "AT^SMSN=13250738627 A_thief_enterned_my_house!Quickly_come_back_and_call_the_polic
+             -!"; 
+  14          
+  15          /*******************************************************************************
+  16          * @function        : sendAChar
+  17          * @brief           : send a char
+  18          * @param           : ch : the character
+  19          * @retval          : none
+  20          *******************************************************************************/
+  21          void sendAChar(uchar ch){
+  22   1        SBUF = ch;
+  23   1        while(!TI);
+  24   1        TI = 0;
+  25   1      }
+  26          
+  27          /*******************************************************************************
+  28          * @function        : sendArray
+  29          * @brief           : send character array
+  30          * @param           : str : the data pepared to write
+  31          * @retval          : none
+  32          *******************************************************************************/
+  33          void sendArray(uchar *str){
+  34   1        while(*str != '\0'){
+  35   2          sendAChar(*str);
+  36   2          str++;
+  37   2        }
+  38   1      }
+  39          
+  40          /*******************************************************************************
+  41          * @function        : GSMInit
+  42          * @brief           : init GSM
+  43          * @param           : none
+  44          * @retval          : none
+  45          *******************************************************************************/
+  46          void GSMInit(){
+  47   1          SCON=0x50; //uart works in mode 1
+  48   1          TH2=0xFF;           
+  49   1          TL2=0xFD;   //115200 bps, fosc=11.0592MHz 
+  50   1          RCAP2H=0xFF;   
+  51   1          RCAP2L=0xFD; //16bit auto relaod mode 
+  52   1          TCLK=1;   
+  53   1          RCLK=1;   
+C51 COMPILER V9.56.0.0   GSM                                                               12/26/2017 12:46:05 PAGE 2   
+
+  54   1          C_T2=0;  //timer mode
+  55   1          EXEN2=0; //toggle the T2 to create uart's bps
+  56   1          TR2=1 ; //run the T2
+  57   1      }
+  58          
+  59          /*******************************************************************************
+  60          * @function        : sendSMSMode
+  61          * @brief           : sent message
+  62          * @param           : none
+  63          * @retval          : none
+  64          *******************************************************************************/
+  65          void sendSMSMode(){
+  66   1        sendArray(content);
+  67   1        SendLR();
+  68   1        delayMs(1000);
+  69   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     79    ----
+   CONSTANT SIZE    =     84    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

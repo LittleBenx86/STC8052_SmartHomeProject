@@ -1,0 +1,395 @@
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE VIEW
+OBJECT MODULE PLACED IN .\Objects\View.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE View.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\View
+                    -.lst) TABS(2) OBJECT(.\Objects\View.obj)
+
+line level    source
+
+   1          #include "View.h"
+   2          
+   3          //define the value of scanning time flag
+   4          bit flagCollent = 0;
+   5          //define the value of scanning time collecter
+   6          idata uchar sweepIntervalCollect;
+   7          //use to display a character on lcd12864
+   8          idata uchar disCode[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+   9          //order: second minute hour week day month year
+  10          idata uint setTimes[] = {0, 50, 10, 6, 22, 12, 17};
+  11          //the array of current time's datas, use as the function DS3231ReadTimes's return value
+  12          idata uint currentTimes[7], curTmp[2];
+  13          
+  14          idata uchar *wdays[7] = {"SUN", "MON", "TUS", "WEN", "THR", "FRI", "SAT"};
+  15          
+  16          
+  17          //t0 timer initial
+  18          void Time0Init(void){//50ms @11.0592mhz
+  19   1          TMOD=0x01;        //t0, mod 1
+  20   1          TH0=TH0_PREVAL;    //high 8bit prevalue
+  21   1          TL0=TL0_PREVAL;    //low 8bit prevalue
+  22   1          TR0=1;            //running the t0
+  23   1          ET0=1;            //enable the t0 interrupt
+  24   1          EA=1;             //enable the global interrupt
+  25   1      }
+  26          
+  27          //int0 interrupt initial
+  28          void int0Init(bit flag){
+  29   1        IT0 = 0;
+  30   1        PX0 = 1;//high interrupt request priority
+  31   1        EX0 = (1 == flag ? 1 : 0);
+  32   1        EA = 1;
+  33   1      }
+  34          
+  35          //welcome view
+  36          bit welcom(){
+  37   1        //varities
+  38   1        uchar State_Timing, p[7], name[17], pwd[7], times, aName[17], aPwd[7], key;
+  39   1        uint  secValChange, dayValChange, tmpHValChange, tmpLValChange;
+  40   1        bit flag;
+  41   1        //init every module
+  42   1        //lcd init
+  43   1        LCD12864_Init();
+  44   1        //ds3231 init
+  45   1        State_Timing = DS3231ReadAByteOfStatus(DS3231_STATUS);//whether to adjust time
+  46   1        if(State_Timing & 0x80){                      //whether the ds3231 had been power down
+  47   2          DS3231Init();                               //init DS3231
+  48   2          DS3231SetTimes(setTimes);
+  49   2        }
+  50   1      
+  51   1        DS3231ReadTimes(currentTimes);               //ds3231 power down detech. valid when run of power or short
+             - circuit. So everytime to power on when read current time
+  52   1        if(currentTimes[6] == 0x00){                 //deteching the year original data, if it equals 0x00 means 
+             -that needs to set time
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 2   
+
+  53   2          DS3231Init();                              //init ds3231 again
+  54   2          DS3231SetTimes(setTimes);
+  55   2        }
+  56   1        //t0 init
+  57   1        Time0Init();            //to init
+  58   1        //int0 init
+  59   1        //int0Init(1);
+  60   1        
+  61   1        //recordUsrNameAndPassword("usr-Unicorn", "951753", 3);
+  62   1        //recordAdminNameAndPassword("Admin-Unicorn", "456951");
+  63   1        //data init
+  64   1        times = getUsrNameAndPassword(name, p);
+  65   1        getAdminNameAndPassword(aName, aPwd);
+  66   1        
+  67   1        LCD12864_WriteArray("    Smart  Home  ", 0, 0);
+  68   1        LCD12864_WriteArray("open:C,out:B", 1, 0);
+  69   1      
+  70   1        again:
+  71   1        do{
+  72   2          LCD12864_WriteArray("            ", 3, 0);
+  73   2          while((key = keyValToChar(keyScanGetVal())) != 0x00);//wait for key press
+  74   2          LCD12864_SetWindow(2, 0);
+  75   2          LCD12864_WriteData(key);
+  76   2          if('c' != key || 'b' != key || 'a' != key){
+  77   3            LCD12864_WriteArray("input error!", 3, 0);
+  78   3          } else break;
+  79   2        }while(1);
+  80   1        
+  81   1        switch(key){
+  82   2          case 'c':{
+  83   3            flag = usrView(name, pwd, &times, p);
+  84   3            if(!flag){//success
+  85   4              mainView(&secValChange, &dayValChange, &tmpHValChange, &tmpLValChange);
+  86   4            } else if(flag && times > 0){//failed
+  87   4              goto again;
+  88   4            } else if(flag && times == 0){//failed & account had been freezed
+  89   4              LCD12864_WriteArray("account freezed", 3, 0);
+  90   4              goto again;
+  91   4            }
+  92   3          }break;
+  93   2          case 'b':{
+  94   3              LCD12864_WriteCmd(SLEEP_CMD);
+  95   3          }break;
+  96   2          case 'a':{
+  97   3            flag = adminView(aName, aPwd, p);
+  98   3            if(!flag){
+  99   4              activeUsr();
+ 100   4            } 
+ 101   3            goto again;
+ 102   3          }break;
+ 103   2          default:
+ 104   2            break;
+ 105   2        }
+ 106   1        return 0;
+ 107   1      }
+ 108          
+ 109          //user view
+ 110          bit usrView(uchar *name, uchar *pwd, uchar *times, uchar *p){
+ 111   1        uchar i = 0, key = 0, eTimes;
+ 112   1        eTimes = *times;
+ 113   1        
+ 114   1        LCD12864_Init();
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 3   
+
+ 115   1        LCD12864_WriteArray("usr:", 0, 0);
+ 116   1        LCD12864_WriteArray(name, 0, 4);
+ 117   1        LCD12864_WriteArray("P:", 1, 0);
+ 118   1        
+ 119   1        LCD12864_SetWindow(1, 3);
+ 120   1        memset(p, 0, 7 * sizeof(uchar));
+ 121   1        do{
+ 122   2          if(i > 6){
+ 123   3            i = 0;
+ 124   3            LCD12864_WriteArray("P:         ", 1, 0);
+ 125   3            LCD12864_WriteArray("password limit 6!", 2, 0);
+ 126   3            LCD12864_SetWindow(1, 3);
+ 127   3            memset(p, 0, 7 * sizeof(uchar));
+ 128   3          }
+ 129   2          
+ 130   2          while((key = keyValToChar(keyScanGetVal())) != 0x00);//wait for key press
+ 131   2          i++;
+ 132   2          if('d' == key && i > 0){//delete an input
+ 133   3            LCD12864_SetWindow(1, 2 + i);
+ 134   3            LCD12864_WriteData(' ');
+ 135   3            i--;
+ 136   3            LCD12864_SetWindow(1, 3 + i);
+ 137   3          } else if('*' == key){//confirm password and then the cpu will valid the password
+ 138   3            if(!validPassword(pwd, p)){//success
+ 139   4              break;
+ 140   4            }
+ 141   3            
+ 142   3            if(eTimes == 0){
+ 143   4              writeByte2Addr(0, USR_ERROR_TIMES, 0, AT24C02_WRITE_CMD, 1);
+ 144   4              *times = 0;
+ 145   4              return 1;//failed
+ 146   4            }
+ 147   3            
+ 148   3            eTimes--;
+ 149   3            LCD12864_WriteArray("password error!", 2, 0);
+ 150   3            LCD12864_SetWindow(3, 0);
+ 151   3            LCD12864_WriteData(eTimes);
+ 152   3            LCD12864_WriteArray(" times left!", 3, 1);
+ 153   3            i = 0;
+ 154   3            LCD12864_WriteArray("P:         ", 1, 0);
+ 155   3            LCD12864_SetWindow(1, 3);
+ 156   3            memset(p, 0, 7 * sizeof(uchar));
+ 157   3          } else if('#' == key || 'b' == key){//quit input and then the view will back to the welcome view 
+ 158   3            return 1;//failed
+ 159   3          } else if('a' == key || 'c' == key){//error input
+ 160   3            i--;
+ 161   3            LCD12864_WriteArray("input error!", 2, 0);
+ 162   3            LCD12864_SetWindow(1, 3 + i);
+ 163   3          } else if(key >= '0' || key <= '9'){//if user input password correctly, the cursor's address will auto p
+             -lus 1;
+ 164   3            LCD12864_WriteData('*');
+ 165   3            p[i] = key;
+ 166   3            LCD12864_WriteArray("                ", 2, 0);
+ 167   3            LCD12864_WriteArray("                ", 3, 0);
+ 168   3            LCD12864_SetWindow(1, 2 + i);
+ 169   3          }
+ 170   2        }while(1);
+ 171   1        
+ 172   1        return 0;//success
+ 173   1      }
+ 174          
+ 175          //backstage admin view
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 4   
+
+ 176          bit adminView(uchar *aName, uchar *aPwd, uchar *p){
+ 177   1        uchar i = 0, key = 0;
+ 178   1        
+ 179   1        LCD12864_Init();
+ 180   1        LCD12864_WriteArray("welcome", 0, 0);
+ 181   1        LCD12864_WriteArray(aName, 1, 0);
+ 182   1        LCD12864_WriteArray("P:", 2, 0);
+ 183   1        
+ 184   1        LCD12864_SetWindow(2, 3);
+ 185   1        memset(p, 0, 7 * sizeof(uchar));
+ 186   1        do{
+ 187   2          if(i > 6){
+ 188   3            i = 0;
+ 189   3            LCD12864_WriteArray("P:         ", 2, 0);
+ 190   3            LCD12864_WriteArray("password limit 6!", 3, 0);
+ 191   3            LCD12864_SetWindow(2, 3);
+ 192   3            memset(p, 0, 7 * sizeof(uchar));
+ 193   3          }
+ 194   2          
+ 195   2          while((key = keyValToChar(keyScanGetVal())) != 0x00);//wait for key press
+ 196   2          i++;
+ 197   2          if('d' == key && i > 0){//delete an input
+ 198   3            LCD12864_SetWindow(2, 2 + i);
+ 199   3            LCD12864_WriteData(' ');
+ 200   3            i--;
+ 201   3            LCD12864_SetWindow(2, 3 + i);
+ 202   3          } else if('*' == key){//confirm password and then the cpu will valid the password
+ 203   3            if(!validPassword(aPwd, p)){//success
+ 204   4              break;
+ 205   4            }
+ 206   3            
+ 207   3            LCD12864_WriteArray("password error!", 3, 0);
+ 208   3            i = 0;
+ 209   3            LCD12864_WriteArray("P:         ", 2, 0);
+ 210   3            LCD12864_SetWindow(2, 3);
+ 211   3            memset(p, 0, 7 * sizeof(uchar));
+ 212   3          } else if('#' == key || 'b' == key){//quit input and then the view will back to the welcome view 
+ 213   3            return 1;//failed
+ 214   3          } else if('a' == key || 'c' == key){//error input
+ 215   3            i--;
+ 216   3            LCD12864_WriteArray("input error!", 3, 0);
+ 217   3            LCD12864_SetWindow(2, 3 + i);
+ 218   3          } else if(key >= '0' || key <= '9'){//if admin input password correctly, the cursor's address will auto 
+             -plus 1;
+ 219   3            LCD12864_WriteData('*');
+ 220   3            p[i] = key;
+ 221   3            LCD12864_WriteArray("                ", 3, 0);
+ 222   3            LCD12864_SetWindow(2, 2 + i);
+ 223   3          }
+ 224   2        }while(1);
+ 225   1        
+ 226   1        return 0;//success
+ 227   1      }
+ 228          
+ 229          //active user account
+ 230          void activeUsr(){
+ 231   1        uchar key;
+ 232   1        LCD12864_Init();
+ 233   1        LCD12864_WriteArray("active all usr?", 0, 0);
+ 234   1        LCD12864_WriteArray("*:confirm", 2, 0);
+ 235   1        LCD12864_WriteArray("eles quit", 3, 0);
+ 236   1        while((key = keyValToChar(keyScanGetVal())) != 0x00);//wait for key press
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 5   
+
+ 237   1        if(key == '*'){//confirm and success
+ 238   2          writeByte2Addr(0, USR_ERROR_TIMES, 3, AT24C02_WRITE_CMD, 1);
+ 239   2        }
+ 240   1        //quit
+ 241   1      }
+ 242          
+ 243          //main view : show the time and temperature
+ 244          void mainView(uint *secValChange, uint *dayValChange, uint *tmpHValChange, uint *tmpLValChange){
+ 245   1        uchar i;
+ 246   1        uint tmp = 0;
+ 247   1        while(flagCollent){ //flagCollent it is time to read times' datas from ds3231          
+ 248   2            EA = 0;                     
+ 249   2            DS3231ReadTimes(currentTimes);
+ 250   2            DS3231ReadTmp(curTmp);
+ 251   2            if(*dayValChange != currentTimes[4]){
+ 252   3              *dayValChange = currentTimes[4];
+ 253   3              LCD12864_SetWindow(0, 0);
+ 254   3              LCD12864_WriteData('2');
+ 255   3              LCD12864_WriteData('0');
+ 256   3              LCD12864_WriteData(disCode[currentTimes[6] / 10]);
+ 257   3              LCD12864_WriteData(disCode[currentTimes[6] % 10]);
+ 258   3              LCD12864_WriteData('/');
+ 259   3              LCD12864_WriteData(disCode[currentTimes[5] / 10]);
+ 260   3              LCD12864_WriteData(disCode[currentTimes[5] % 10]);
+ 261   3              LCD12864_WriteData('/');
+ 262   3              LCD12864_WriteData(disCode[currentTimes[4] / 10]);
+ 263   3              LCD12864_WriteData(disCode[currentTimes[4] % 10]);
+ 264   3        
+ 265   3              for(i = 0; i < 4; i++){
+ 266   4                if(i == 0) LCD12864_WriteData(' ');
+ 267   4                else LCD12864_WriteData(*(wdays[currentTimes[3] - 1] + i - 1));
+ 268   4              }
+ 269   3            }
+ 270   2            
+ 271   2            if(*secValChange != currentTimes[0]){
+ 272   3              *secValChange = currentTimes[0];
+ 273   3              LCD12864_SetWindow(1, 0);
+ 274   3              LCD12864_WriteData(disCode[currentTimes[2] / 10]);
+ 275   3              LCD12864_WriteData(disCode[currentTimes[2] % 10]);
+ 276   3              LCD12864_WriteData(':');
+ 277   3              LCD12864_WriteData(disCode[currentTimes[1] / 10]);
+ 278   3              LCD12864_WriteData(disCode[currentTimes[1] % 10]);
+ 279   3              LCD12864_WriteData(':');
+ 280   3              LCD12864_WriteData(disCode[currentTimes[0] / 10]);
+ 281   3              LCD12864_WriteData(disCode[currentTimes[0] % 10]);
+ 282   3            }
+ 283   2            
+ 284   2            if(*tmpHValChange != curTmp[0] || *tmpLValChange != curTmp[1]){
+ 285   3              
+ 286   3              if((curTmp[0] & 0x80) == 0)
+ 287   3                LCD12864_WriteData(' ');
+ 288   3               else {
+ 289   4                tmp = curTmp[0];
+ 290   4                tmp <<= 2;
+ 291   4                curTmp[1] >>= 6;
+ 292   4                tmp += curTmp[1];
+ 293   4                tmp = (~tmp) + 1;//two's complement
+ 294   4                tmp = tmp & 0x03ff;
+ 295   4                curTmp[1] = tmp & 0x0003;
+ 296   4                curTmp[1] = curTmp[1] * 25;
+ 297   4                curTmp[0] = tmp >> 2;
+ 298   4                
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 6   
+
+ 299   4                LCD12864_WriteData('-');
+ 300   4              }
+ 301   3              LCD12864_WriteData(disCode[curTmp[0] / 10]);
+ 302   3              LCD12864_WriteData(disCode[curTmp[0] % 10]);
+ 303   3              LCD12864_WriteData('.');
+ 304   3              LCD12864_WriteData(disCode[curTmp[1] / 10]);
+ 305   3              LCD12864_WriteData(disCode[curTmp[1] % 10]);
+ 306   3              LCD12864_WriteData('\'');
+ 307   3              LCD12864_WriteData('C');
+ 308   3              
+ 309   3              *tmpHValChange = currentTimes[0];
+ 310   3              *tmpLValChange = currentTimes[1];
+ 311   3            }
+ 312   2            
+ 313   2            flagCollent = 0;           
+ 314   2            EA = 1;
+ 315   2          }
+ 316   1      }
+ 317          
+ 318          //password valid
+ 319          bit validPassword(uchar *pwd, uchar *p){
+ 320   1        uchar i = 0;
+ 321   1        while(p[i] != '\0' && i < 7){//valid password
+ 322   2          if(p[i] != pwd[i])//if not equal
+ 323   2            return 1;//failed
+ 324   2          i++;
+ 325   2        }
+ 326   1        
+ 327   1        if(i < 6)
+ 328   1          return 1;//failed
+ 329   1        return 0;//success
+ 330   1      }
+ 331          
+ 332          //infrared body sensor alarm
+ 333          void Interrupt0Handler(void) interrupt 0 using 1{
+ 334   1        EA = 0;
+ 335   1        setBitPlayL();
+ 336   1        delayMs(25);
+ 337   1        resetBitPlayL();
+ 338   1        delayMs(500);
+ 339   1        EA = 1;
+ 340   1      }
+ 341          
+ 342          //timer0 interruption handler. Using to read ds3231's times datas
+ 343          void Time0Handler(void) interrupt 1 using 3 {
+ 344   1        TR0 = 0;                              
+ 345   1        TH0 = TH0_PREVAL; //50ms timing                   
+ 346   1        TL0 = TL0_PREVAL;                   
+ 347   1        TR0 = 1;                           
+ 348   1        if(sweepIntervalCollect >= 0x06){    //about 0.3s after : calling the cpu to read times' datas from ds323
+             -1
+ 349   2          flagCollent = 1;                   
+ 350   2          sweepIntervalCollect = 0;         
+ 351   2        }
+ 352   1        else  
+ 353   1          sweepIntervalCollect++;         
+ 354   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2213    ----
+   CONSTANT SIZE    =    229    ----
+C51 COMPILER V9.56.0.0   VIEW                                                              12/23/2017 15:07:04 PAGE 7   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----     112
+   IDATA SIZE       =     64    ----
+   BIT SIZE         =      1       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

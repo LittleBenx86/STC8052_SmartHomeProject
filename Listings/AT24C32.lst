@@ -1,0 +1,47 @@
+C51 COMPILER V9.56.0.0   AT24C32                                                           12/23/2017 15:37:33 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE AT24C32
+OBJECT MODULE PLACED IN .\Objects\AT24C32.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE AT24C32.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\A
+                    -T24C32.lst) TABS(2) OBJECT(.\Objects\AT24C32.obj)
+
+line level    source
+
+   1          #include "AT24C32.h"
+   2          
+   3          void recordUsrNameAndPassword(uchar *name, uchar *pwd, uchar times){
+   4   1        writeArray(name, 0, USR_NAME, 17, AT24C02_WRITE_CMD, 1);
+   5   1        writeArray(pwd, 0, USR_PWD, 7, AT24C02_WRITE_CMD, 1);
+   6   1        writeByte2Addr(0, USR_ERROR_TIMES, times, AT24C02_WRITE_CMD, 1);
+   7   1      }
+   8          
+   9          uchar getUsrNameAndPassword(uchar *name, uchar *pwd){
+  10   1        readArray(name, 0, USR_NAME, 16, AT24C02_WRITE_CMD, AT24C02_READ_CMD, 1);
+  11   1        readArray(pwd, 0, USR_PWD, 6, AT24C02_WRITE_CMD, AT24C02_READ_CMD, 1);
+  12   1        return readByteFromAddr(0, USR_ERROR_TIMES, AT24C02_WRITE_CMD, AT24C02_READ_CMD, 1);
+  13   1      }
+  14          
+  15          void recordAdminNameAndPassword(uchar *name, uchar *pwd){
+  16   1        writeArray(name, 0, ADMIN_NAME, 17, AT24C02_WRITE_CMD, 1);
+  17   1        writeArray(pwd, 0, ADMIN_PWD, 7, AT24C02_WRITE_CMD, 1);
+  18   1      }
+  19          
+  20          void getAdminNameAndPassword(uchar *name, uchar *pwd){
+  21   1        readArray(name, 0, ADMIN_NAME, 16, AT24C02_WRITE_CMD, AT24C02_READ_CMD, 1);
+  22   1        readArray(pwd, 0, ADMIN_PWD, 6, AT24C02_WRITE_CMD, AT24C02_READ_CMD, 1);
+  23   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    221    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      25
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

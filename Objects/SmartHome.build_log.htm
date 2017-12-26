@@ -1,0 +1,58 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: µVision V5.24.2.0
+Copyright (C) 2017 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Ben-Zheng Ben-Zheng, Ben-Zheng, LIC=AT29U-SX54W-VPLZ0-BTINR-FX8RG-K8U75
+ 
+Tool Versions:
+Toolchain:       PK51 Prof. Developers Kit  Version: 9.56.0.0
+Toolchain Path:  F:\Keil_v5\C51\BIN
+C Compiler:      C51.exe V9.56.0.0
+Assembler:       A51.exe V8.2.5.0
+Linker/Locator:  BL51.exe V6.22
+Library Manager: LIB51.exe V4.30.1.0
+Hex Converter:   OH51.exe V2.7.0.0
+CPU DLL:         S8051.DLL V3.106.0.0
+Dialog DLL:      DP51.DLL V2.63.0.0 
+<h2>Project:</h2>
+F:\keil\c51\SmartHome\SmartHome.uvproj
+Project File Date:  12/24/2017
+
+<h2>Output:</h2>
+Rebuild target 'Project'
+compiling LCD12864.c...
+compiling KeyScan.c...
+compiling Delay.c...
+compiling I2C.c...
+compiling main.c...
+compiling DS3231.c...
+compiling GSM.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?DELAY100US?DELAY
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_LCD12864_WRITECMD?LCD12864
+    CALLER1: ?PR?INTERRUPT0HANDLER?MAIN
+    CALLER2: ?C_C51STARTUP
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?LCD12864_BUSY?LCD12864
+    CALLER1: ?PR?INTERRUPT0HANDLER?MAIN
+    CALLER2: ?C_C51STARTUP
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_LCD12864_WRITEARRAY?LCD12864
+    CALLER1: ?PR?INTERRUPT0HANDLER?MAIN
+    CALLER2: ?C_C51STARTUP
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_LCD12864_WRITEDATA?LCD12864
+    CALLER1: ?PR?INTERRUPT0HANDLER?MAIN
+    CALLER2: ?C_C51STARTUP
+Program Size: data=88.6 xdata=26 code=6042
+creating hex file from ".\Objects\SmartHome"...
+".\Objects\SmartHome" - 0 Error(s), 5 Warning(s).
+Build Time Elapsed:  00:00:03
+</pre>
+</body>
+</html>

@@ -1,0 +1,142 @@
+C51 COMPILER V9.56.0.0   KEYSCAN                                                           12/26/2017 12:46:04 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN .\Objects\KeyScan.obj
+COMPILER INVOKED BY: F:\Keil_v5\C51\BIN\C51.EXE KeyScan.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\K
+                    -eyScan.lst) TABS(2) OBJECT(.\Objects\KeyScan.obj)
+
+line level    source
+
+   1          #include "KeyScan.h"
+   2          
+   3          /*******************************************
+   4           * @author Unicorn
+   5           * @date 2017-12-22
+   6           */
+   7          
+   8          /*******************************************************************************
+   9          * @function        : the keyboard scan
+  10          * @brief       : get key value
+  11          * @param           : none
+  12          * @retval          : keyVal
+  13          *******************************************************************************/
+  14          uchar keyScanGetVal(){
+  15   1        uchar keyVal = 0, i, temp;
+  16   1        P1 = 0x0f;
+  17   1        if(0x0f == P1)
+  18   1          return keyVal;
+  19   1        else {
+  20   2          delayMs(10);//elimination
+  21   2          for(i = 0; i < 4; i++){
+  22   3            P1 = _cror_(0x7f, i);//right move a bit to scan the keyboard and monitor the key press situation
+  23   3            temp = P1;
+  24   3            temp = temp & 0x0f;
+  25   3            
+  26   3            if(0x0f != temp){
+  27   4              temp = P1;
+  28   4              if(0 == COL_ONE){
+  29   5                keyVal = temp;
+  30   5                break;
+  31   5              } 
+  32   4              if(0 == COL_TWO){
+  33   5                keyVal = temp;
+  34   5                break;
+  35   5              } 
+  36   4              if(0 == COL_THREE){
+  37   5                keyVal = temp;
+  38   5                break;
+  39   5              } 
+  40   4              if(0 == COL_FOUR){
+  41   5                keyVal = temp;
+  42   5                break;
+  43   5              } 
+  44   4            }
+  45   3          }
+  46   2          
+  47   2          for(; P1 != 0x0f; P1 = 0x0f);//elimination and waiting for the key release
+  48   2          return keyVal;
+  49   2        }
+  50   1      }
+  51          
+  52          /*******************************************************************************
+  53          * @function        : key value change to ascii value
+  54          * @brief       : key value change to ascii value
+C51 COMPILER V9.56.0.0   KEYSCAN                                                           12/26/2017 12:46:04 PAGE 2   
+
+  55          * @param           : keyVal : the return value of keyScanGetVal()
+  56          * @retval          : keyVal : after changed value (ascii)
+  57          *******************************************************************************/
+  58          uchar keyValToChar(uchar keyVal){
+  59   1        switch(keyVal){
+  60   2          case 0x00:
+  61   2            return 0x00;
+  62   2            break;
+  63   2          case 0xee:
+  64   2            keyVal = 'd';//delete 
+  65   2            break;
+  66   2          case 0xed:
+  67   2            keyVal = '#';//quit 
+  68   2            break;
+  69   2          case 0xeb:
+  70   2            keyVal = '0';
+  71   2            break;
+  72   2          case 0xe7:
+  73   2            keyVal = '*';//confirm 
+  74   2            break;
+  75   2          case 0xde:
+  76   2            keyVal = 'c';//custom use to open the door
+  77   2            break;
+  78   2          case 0xdd:
+  79   2            keyVal = '9';
+  80   2            break;
+  81   2          case 0xdb:
+  82   2            keyVal = '8';
+  83   2            break;
+  84   2          case 0xd7:
+  85   2            keyVal = '7';
+  86   2            break;
+  87   2          case 0xbe:
+  88   2            keyVal = 'b';//backstage wake up the LCD12864
+  89   2            break;
+  90   2          case 0xbd:
+  91   2            keyVal = '6';
+  92   2            break;
+  93   2          case 0xbb:
+  94   2            keyVal = '5';
+  95   2            break;
+  96   2          case 0xb7:
+  97   2            keyVal = '4';
+  98   2            break;
+  99   2          case 0x7e:
+ 100   2            keyVal = 'a';//admin enter tobackstage 
+ 101   2            break;
+ 102   2          case 0x7d:
+ 103   2            keyVal = '3';
+ 104   2            break;
+ 105   2          case 0x7b:
+ 106   2            keyVal = '2';
+ 107   2            break;
+ 108   2          case 0x77:
+ 109   2            keyVal = '1';
+ 110   2            break;
+ 111   2        }
+ 112   1        
+ 113   1        return keyVal;
+ 114   1      }
+
+
+C51 COMPILER V9.56.0.0   KEYSCAN                                                           12/26/2017 12:46:04 PAGE 3   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    279    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
